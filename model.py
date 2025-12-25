@@ -14,9 +14,10 @@ def to_categorical_np(y, num_classes=10):
     one_hot = np.zeros((y.shape[0], num_classes))
     one_hot[np.arange(y.shape[0]), y] = 1
     return one_hot
+
 x, y = fetch_openml('mnist_784', version=1, return_X_y=True)
-x = np.array(x, dtype='float32') / 255  # Convert to numpy array
-y = np.array(y, dtype=int)  # Convert to numpy array
+x = np.array(x, dtype='float32') / 255 
+y = np.array(y, dtype=int) 
 y = to_categorical_np(y)
 x_train, x_test, y_train, y_test = train_test_split(x,y,test_size=0.15, random_state=42)
 
@@ -33,7 +34,6 @@ class DeepNeuralNetwork:
         return 1/(1 + np.exp(-x))
 
     def softmax(self, x):
-        # Numerically stable with large exponentials
         exps = np.exp(x - x.max())
         return exps / np.sum(exps, axis=0)
     
@@ -71,21 +71,20 @@ class DeepNeuralNetwork:
         change_w = {}
 
         error = output - y_train
-        change_w['W3'] = np.dot(error, params['A3'])
+        change_w['W3'] = np.dot(error, params['A2'].T)
 
         error = np.multiply( np.dot(params['W3'].T, error), self.sigmoid(params['Z2'], derivative=True) )
-        change_w['W2'] = np.dot(error, params['A2'])
+        change_w['W2'] = np.dot(error, params['A1'].T)
 
         error = np.multiply( np.dot(params['W2'].T, error), self.sigmoid(params['Z1'], derivative=True) )
-        change_w['W1'] = np.dot(error, params['A1'])
+        change_w['W1'] = np.dot(error, params['A0'].T)
 
         return change_w
     
     def update_network_parameters(self, changes_to_w):
-    
         for key, value in changes_to_w.items():
-            for w_arr in self.params[key]:
-                w_arr -= self.l_rate * value
+            self.params[key] -= self.l_rate * value
+
     
     def compute_accuracy(self, x_val, y_val):
         predictions = []
@@ -94,7 +93,7 @@ class DeepNeuralNetwork:
             output = self.forward_pass(x)
             pred = np.argmax(output)
             predictions.append(pred == y)
-
+            
         summed = sum(pred for pred in predictions) / 100.0
         return np.average(summed)
     
@@ -102,6 +101,7 @@ class DeepNeuralNetwork:
         start_time = time.time()
         for iteration in range(self.epochs):
             for x,y in zip(x_train, y_train):
+                y = y.reshape(-1, 1) 
                 output = self.forward_pass(x)
                 changes_to_w = self.backward_pass(y, output)
                 self.update_network_parameters(changes_to_w)
